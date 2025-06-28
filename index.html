@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application de Suivi des Stages</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary-color: #007bff; --danger-color: #D6001C; --success-color: #28a745; --light-bg: #f8f9fa; --info-color: #17a2b8;}
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 20px auto; background-color: #ffffff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+        h1, h2, h3 { text-align: center; color: #4a4a4a; margin-top: 0; }
+        h1 { text-transform: uppercase; font-size: 24px; }
+        h2 { font-size: 20px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        button { cursor: pointer; border: none; border-radius: 5px; padding: 10px 20px; font-size: 16px; font-weight: bold; transition: all 0.2s ease; }
+        .hidden { display: none; }
+        #form-view .form-header { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        #form-view .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        #form-view input, #form-view select, #form-view textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        #form-view textarea { resize: none; }
+        #form-view .evaluation-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        #form-view .evaluation-table th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+        #form-view .evaluation-table th { background-color: var(--light-bg); text-align: center; word-break: break-word; }
+        #form-view .evaluation-table td:not(:first-child) { text-align: center; }
+        #form-view .evaluation-table input[type="radio"] { transform: scale(1.4); }
+        #form-view .text-area-group { margin-bottom: 25px; }
+        #form-view button[type="submit"] { display: block; width: 100%; padding: 15px; background-color: var(--danger-color); color: #ffffff; font-size: 18px; }
+        #form-view button[type="submit"]:hover { background-color: #A50015; }
+        #form-view .admin-access-btn { display: block; width: fit-content; margin: 30px auto 0; background: none; border: none; color: var(--primary-color); text-decoration: underline; font-size: 14px; }
+        #admin-hub-view .button-group { display: grid; grid-template-columns: 1fr; gap: 15px; text-align: center; }
+        #admin-hub-view button { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; }
+        #admin-hub-view button:hover { background-color: #0056b3; }
+        #admin-hub-view .export-btn, #admin-hub-view .import-btn { background-color: var(--success-color); }
+        #admin-hub-view .export-btn:hover, #admin-hub-view .import-btn:hover { background-color: #218838; }
+        #admin-hub-view .back-btn { background-color: #6c757d; }
+        #admin-hub-view .back-btn:hover { background-color: #5a6268; }
+        #consultation-view .filters { background-color: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        #consultation-view .filters label { font-weight: bold; }
+        #consultation-view .filters select { padding: 8px; width: 100%; border-radius: 4px; border: 1px solid #ccc; }
+        #consultation-list, #saved-analyses-list { display: flex; flex-direction: column; gap: 10px; }
+        .submission-item, .saved-analysis-item { padding: 15px; border: 1px solid #ddd; border-radius: 5px; display: flex; align-items: center; gap: 15px; }
+        .submission-item .checkbox-container input, .saved-analysis-item .checkbox-container input { transform: scale(1.6); margin-right: 5px; }
+        .submission-item .info, .saved-analysis-item .info-main { flex-grow: 1; }
+        .submission-item .info:hover { text-decoration: underline; cursor: pointer; }
+        .submission-item .info .header, .saved-analysis-item .info-main .header { font-weight: bold; font-size: 1.1em; }
+        .submission-item .info .date, .saved-analysis-item .info-main .date { color: #555; font-size: 0.9em; }
+        .submission-item .profile-badge { padding: 5px 10px; border-radius: 15px; color: white; font-weight: bold; }
+        .badge-esi { background-color: #007bff; }
+        .badge-eas { background-color: #17a2b8; }
+        .badge-default { background-color: #6c757d; }
+        .delete-btn { background-color: var(--danger-color); color: white; padding: 5px 12px; font-size: 14px;}
+        .delete-btn:hover { background-color: #A50015; }
+        .consultation-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+        .consultation-actions .select-all-label { cursor: pointer; user-select: none;}
+        .consultation-actions button { background-color: var(--success-color); color: white; }
+        .admin-tools { display:flex; gap: 15px; justify-content: center; padding-top: 20px;}
+        .admin-tools button {background-color: #6c757d; color: white;}
+        .admin-tools .action-btn, .admin-tools #print-analysis-btn, .admin-tools #print-comparison-btn {background-color: var(--primary-color);}
+        
+        .saved-analysis-item .actions { display: flex; gap: 10px; }
+        .saved-analysis-item .view-btn { background-color: var(--primary-color); color: white; }
+
+        #analysis-view .stats-grid, #deep-analysis-view .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        #analysis-view .stat-card, #deep-analysis-view .stat-card { background: var(--light-bg); padding: 20px; border-radius: 8px; text-align: center; }
+        #analysis-view .stat-card .number, #deep-analysis-view .stat-card .number { font-size: 2.5em; font-weight: bold; color: var(--primary-color); }
+        #analysis-view .stat-card .label, #deep-analysis-view .stat-card .label { font-size: 1em; color: #6c757d; }
+        
+        #analysis-title-container, #compared-analyses-info { background-color: #eef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #cce; }
+        #compared-analyses-info h3 { margin: 0 0 10px 0; font-size: 1.1em; text-align: left; }
+        #compared-analyses-info ul { margin: 0; padding-left: 20px; }
+        
+        .chart-container { margin-bottom: 40px; }
+        #item-evolution-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
+
+        .analysis-item { margin-bottom: 20px; }
+        .analysis-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .analysis-item-header .label { font-size: 1.1em; font-weight: 500; }
+        .analysis-item-header .average-score-text { font-size: 1.1em; font-weight: bold; color: #4a4a4a; }
+        
+        #ratings-legend { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; }
+        .legend-color-box { width: 15px; height: 15px; margin-right: 5px; border-radius: 3px;}
+        .dist-ns-bg { background-color: #d9534f; }
+        .dist-ms-bg { background-color: #f0ad4e; }
+        .dist-s-bg  { background-color: #5bc0de; }
+        .dist-ts-bg { background-color: #5cb85c; }
+
+        .distribution-bar { display: flex; height: 24px; border-radius: 5px; overflow: hidden; }
+        .dist-segment { height: 100%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; border-right: 2px solid #fff; box-sizing: border-box;}
+        .dist-segment:last-child { border-right: none; }
+        
+        #ai-synthesis-container, #ai-comparison-synthesis-container, #deep-analysis-content { background-color: #e7f1ff; padding: 20px; border-radius: 8px; border: 1px solid #b8d6fb; min-height: 100px; }
+        #deep-analysis-content h3 { text-align: left; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
+        #deep-analysis-content h4 { text-align: left; color: #333; margin-top: 15px; }
+        #deep-analysis-content p { line-height: 1.6; }
+        #deep-analysis-content blockquote { border-left: 4px solid #b8d6fb; padding-left: 15px; margin: 10px 0; font-style: italic; color: #555; }
+        .loading-text { color: #555; font-style: italic; }
+
+        @media print {
+            body { background-color: #fff !important; }
+            .no-print, main:not(.printable-view) { display: none !important; }
+            main.printable-view { display: block !important; }
+            .container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+            #item-evolution-charts-grid { grid-template-columns: 1fr 1fr !important; }
+            h2 { border-bottom: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+    <main id="form-view"><div class="container"><h1>Questionnaire de Satisfaction</h1><form id="satisfaction-form"><div class="form-header"><div class="form-group"><label for="student-status">Statut de l'étudiant :</label><select id="student-status" name="student_status" required><option value="">-- Choisir --</option><option value="esi">Étudiant en Soins Infirmiers (ESI)</option><option value="eas">Élève Aide-Soignant (EAS)</option></select></div><div class="form-group"><label for="student-year">Année d'étude :</label><select id="student-year" name="student_year" required><option value="">-- Choisir --</option><option value="1">1ère année</option><option value="2">2ème année</option><option value="3">3ème année</option></select></div></div>
+        <table class="evaluation-table"><thead><tr><th>Critère</th><th>Non Satisf.</th><th>Moyen. Satisf.</th><th>Satisfaisant</th><th>Très Satisf.</th></tr></thead><tbody><tr><td>1) Accueil</td><td><input type="radio" name="accueil" value="1" required></td><td><input type="radio" name="accueil" value="2"></td><td><input type="radio" name="accueil" value="3"></td><td><input type="radio" name="accueil" value="4"></td></tr><tr><td>2) Déroulement du stage</td><td><input type="radio" name="deroulement" value="1" required></td><td><input type="radio" name="deroulement" value="2"></td><td><input type="radio" name="deroulement" value="3"></td><td><input type="radio" name="deroulement" value="4"></td></tr><tr><td>3) Planning</td><td><input type="radio" name="planning" value="1" required></td><td><input type="radio" name="planning" value="2"></td><td><input type="radio" name="planning" value="3"></td><td><input type="radio" name="planning" value="4"></td></tr><tr><td>4) Encadrement par AS</td><td><input type="radio" name="encadrement_as" value="1" required></td><td><input type="radio" name="encadrement_as" value="2"></td><td><input type="radio" name="encadrement_as" value="3"></td><td><input type="radio" name="encadrement_as" value="4"></td></tr><tr><td>5) Encadrement par IDE</td><td><input type="radio" name="encadrement_ide" value="1" required></td><td><input type="radio" name="encadrement_ide" value="2"></td><td><input type="radio" name="encadrement_ide" value="3"></td><td><input type="radio" name="encadrement_ide" value="4"></td></tr>
+        <tr><td>6) Relationnel équipe ASH</td><td><input type="radio" name="relationnel_ash" value="1" required></td><td><input type="radio" name="relationnel_ash" value="2"></td><td><input type="radio" name="relationnel_ash" value="3"></td><td><input type="radio" name="relationnel_ash" value="4"></td></tr>
+        <tr><td>7) Relationnel équipe AS</td><td><input type="radio" name="relationnel_as" value="1" required></td><td><input type="radio" name="relationnel_as" value="2"></td><td><input type="radio" name="relationnel_as" value="3"></td><td><input type="radio" name="relationnel_as" value="4"></td></tr>
+        <tr><td>8) Relationnel équipe IDE</td><td><input type="radio" name="relationnel_ide" value="1" required></td><td><input type="radio" name="relationnel_ide" value="2"></td><td><input type="radio" name="relationnel_ide" value="3"></td><td><input type="radio" name="relationnel_ide" value="4"></td></tr>
+        <tr><td>9) Relationnel tuteurs</td><td><input type="radio" name="relationnel_tuteurs" value="1" required></td><td><input type="radio" name="relationnel_tuteurs" value="2"></td><td><input type="radio" name="relationnel_tuteurs" value="3"></td><td><input type="radio" name="relationnel_tuteurs" value="4"></td></tr>
+        <tr><td>10) Atteinte des objectifs</td><td><input type="radio" name="objectifs" value="1" required></td><td><input type="radio" name="objectifs" value="2"></td><td><input type="radio" name="objectifs" value="3"></td><td><input type="radio" name="objectifs" value="4"></td></tr>
+        <tr class="esi-only-question hidden"><td>10.a) Objectifs rôle propre</td><td><input type="radio" name="objectifs_role_propre" value="1"></td><td><input type="radio" name="objectifs_role_propre" value="2"></td><td><input type="radio" name="objectifs_role_propre" value="3"></td><td><input type="radio" name="objectifs_role_propre" value="4"></td></tr>
+        <tr class="esi-only-question hidden"><td>10.b) Objectifs sur prescription</td><td><input type="radio" name="objectifs_prescription" value="1"></td><td><input type="radio" name="objectifs_prescription" value="2"></td><td><input type="radio" name="objectifs_prescription" value="3"></td><td><input type="radio" name="objectifs_prescription" value="4"></td></tr>
+        </tbody></table>
+        <div class="text-area-group"> <label for="commentaires">Commentaires :</label> <textarea id="commentaires" name="commentaires" rows="5"></textarea> </div><div class="text-area-group"> <label for="suggestions">Suggestions :</label> <textarea id="suggestions" name="suggestions" rows="5"></textarea> </div><button type="submit">Soumettre le questionnaire</button></form><button id="show-admin-hub-btn" class="admin-access-btn no-print">Accès Référent</button></div></main>
+    <main id="admin-hub-view" class="hidden"><div class="container"><h1>Espace Référent</h1>
+        <div class="button-group">
+            <button id="go-to-consultation-btn">Filtrer et Consulter les questionnaires</button>
+            <button id="go-to-saved-analyses-btn">Consulter les analyses sauvegardées</button>
+            <button id="import-json-btn" class="import-btn">Importer les données (JSON)</button>
+            <input type="file" id="import-json-input" class="hidden" accept=".json">
+            <button id="export-json-btn" class="export-btn">Exporter toutes les données (JSON)</button>
+            <button id="back-to-form-from-hub-btn" class="back-btn">Retour au formulaire</button>
+        </div>
+    </div></main>
+    <main id="consultation-view" class="hidden"><div class="container"><h1 class="no-print">Filtrer et Sélectionner</h1><div class="filters no-print"><div class="form-group"><label for="consult-filter-status">Statut :</label><select id="consult-filter-status"><option value="tous">Tous</option><option value="esi">ESI</option><option value="eas">EAS</option></select></div><div class="form-group"><label for="consult-filter-year">Année d'étude :</label><select id="consult-filter-year"><option value="tous">Toutes</option><option value="1">1ère</option><option value="2">2ème</option><option value="3">3ème</option></select></div><div class="form-group"><label for="consult-filter-school-year">Année scolaire :</label><select id="consult-filter-school-year"><option value="tous">Toutes</option></select></div></div><div id="consultation-list"></div><div class="consultation-actions no-print"><label class="select-all-label"><input type="checkbox" id="select-all-checkbox"> Tout sélectionner</label><button id="analyze-selection-btn">Analyser la sélection</button></div><div class="admin-tools no-print"><button id="back-to-hub-from-consult-btn">Retour à l'Espace Référent</button></div></div></main>
+    <main id="detail-view" class="hidden"><div class="container"><div id="detail-content"></div><div class="admin-tools no-print"><button id="print-detail-btn">Imprimer</button><button id="delete-from-detail-btn" class="delete-btn">Supprimer</button><button id="back-to-list-btn">Retour à la liste</button></div></div></main>
+    
+    <main id="saved-analysis-list-view" class="hidden">
+        <div class="container">
+            <h1>Analyses Sauvegardées</h1>
+            <div id="saved-analyses-list"></div>
+            <div class="consultation-actions no-print">
+                <label class="select-all-label"><input type="checkbox" id="select-all-analyses-checkbox"> Tout sélectionner</label>
+                <button id="compare-analyses-btn">Comparer la sélection (2+)</button>
+            </div>
+            <div class="admin-tools no-print">
+                <button id="back-to-hub-from-saved-list-btn">Retour à l'Espace Référent</button>
+            </div>
+        </div>
+    </main>
+
+    <main id="analysis-view" class="hidden"><div class="container">
+        <h1 class="no-print">Analyse des Réponses</h1>
+        <div id="analysis-title-container" class="no-print hidden"></div>
+        <div class="stats-grid"><div class="stat-card"><div id="total-submissions" class="number">0</div><div class="label">Questionnaires analysés</div></div><div class="stat-card"><div id="average-score" class="number">0.0</div><div class="label">Note moyenne globale</div></div></div>
+        <div class="analysis-section"><h2>Répartition par question</h2><div id="ratings-legend" class="no-print hidden"></div><div id="ratings-analysis"></div></div>
+        <div class="analysis-section"><h2>Synthèse IA des Retours Qualitatifs</h2><div id="ai-synthesis-container"></div></div>
+        <div class="admin-tools no-print">
+            <button id="deep-analyze-btn" class="action-btn">Lancer l'Analyse Approfondie IA</button>
+            <button id="print-analysis-btn">Imprimer</button>
+            <button id="back-to-list-from-analysis-btn">Retour</button>
+        </div></div></main>
+    
+    <main id="comparison-view" class="hidden">
+        <div class="container">
+            <h1 class="no-print">Comparaison des Analyses</h1>
+            <div id="compared-analyses-info"></div>
+            <div class="analysis-section">
+                <h2>Évolution de la Note Moyenne Globale</h2>
+                <div class="chart-container">
+                    <canvas id="overall-score-chart"></canvas>
+                </div>
+            </div>
+            <div class="analysis-section">
+                <h2>Évolution par Question</h2>
+                <div id="item-evolution-charts-grid"></div>
+            </div>
+            <div class="analysis-section">
+                <h2>Synthèse Comparative par l'IA</h2>
+                <div id="ai-comparison-synthesis-container"></div>
+            </div>
+            <div class="admin-tools no-print">
+                <button id="print-comparison-btn">Imprimer</button>
+                <button id="back-to-saved-list-from-comparison-btn">Retour</button>
+            </div>
+        </div>
+    </main>
+
+    <main id="deep-analysis-view" class="hidden">
+        <div class="container">
+            <h1>Analyse Approfondie IA</h1>
+            <div id="deep-analysis-title"></div>
+            <div id="deep-analysis-content"><p class="loading-text">Analyse approfondie en cours...</p></div>
+            <div class="admin-tools no-print">
+                <button id="print-deep-analysis-btn" class="action-btn">Imprimer</button>
+                <button id="back-to-saved-list-from-deep-analysis-btn">Retour aux analyses</button>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const RATING_MAP = { '1': 'Non Satisfaisant', '2': 'Moyen. Satisf.', '3': 'Satisfaisant', '4': 'Très Satisf.' };
+        const QUESTION_MAP = { accueil: "1) Accueil", deroulement: "2) Déroulement du stage", planning: "3) Planning", encadrement_as: "4) Encadrement par AS", encadrement_ide: "5) Encadrement par IDE", objectifs: "6) Atteinte des objectifs", objectifs_role_propre: "6.a) Objectifs rôle propre", objectifs_prescription: "6.b) Objectifs sur prescription", relationnel_ash: "7) Relationnel avec l'équipe ASH", relationnel_as: "8) Relationnel avec l'équipe AS", relationnel_ide: "9) Relationnel avec l'équipe IDE", relationnel_tuteurs: "10) Relationnel avec les tuteurs" };
+        const YEAR_DISPLAY_MAP = { '1': '1ère Année', '2': '2ème Année', '3': '3ème Année' };
+        
+        const views = { form: document.getElementById('form-view'), adminHub: document.getElementById('admin-hub-view'), consultation: document.getElementById('consultation-view'), detail: document.getElementById('detail-view'), analysis: document.getElementById('analysis-view'), savedAnalysisList: document.getElementById('saved-analysis-list-view'), comparison: document.getElementById('comparison-view'), deepAnalysis: document.getElementById('deep-analysis-view') };
+        const form = document.getElementById('satisfaction-form');
+        let currentDetailId = null;
+        let currentAnalysis = null;
+        let overallScoreChart = null;
+        let itemChartInstances = [];
+        const studentStatusSelect = document.getElementById('student-status');
+
+        function toggleEsiQuestions() { /* ... */ }
+        studentStatusSelect.addEventListener('change', toggleEsiQuestions);
+        
+        function showView(viewName) { document.querySelectorAll('main').forEach(v => v.classList.add('hidden')); views[viewName].classList.remove('hidden'); window.scrollTo(0, 0); }
+        function checkPassword() { const today = new Date(); const correctPassword = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`; const userInput = prompt('Veuillez entrer le mot de passe administrateur'); if (userInput === null) return false; if (userInput === correctPassword) return true; alert('Mot de passe incorrect.'); return false; }
+        
+        function deleteSubmission(submissionId) { if (!confirm('Êtes-vous sûr de vouloir supprimer ce questionnaire ?\nCette action est irréversible.')) return; const updatedSubmissions = getSubmissions().filter(s => s.id !== submissionId); localStorage.setItem('questionnaires', JSON.stringify(updatedSubmissions)); if (!views.detail.classList.contains('hidden')) showView('consultation'); populateFiltersAndRenderList(); }
+
+        document.getElementById('show-admin-hub-btn').addEventListener('click', () => { if (checkPassword()) showView('adminHub'); });
+        document.getElementById('go-to-consultation-btn').addEventListener('click', () => { showView('consultation'); populateFiltersAndRenderList(); });
+        const getSubmissions = () => JSON.parse(localStorage.getItem('questionnaires')) || [];
+        form.addEventListener('submit', function(event) { event.preventDefault(); const formData = new FormData(form); const submission = {}; for (const [key, value] of formData.entries()) { submission[key] = value; } const today = new Date(); let currentYear = today.getFullYear(); if (today.getMonth() < 8) { submission.school_year = `${currentYear - 1}-${currentYear}`; } else { submission.school_year = `${currentYear}-${currentYear + 1}`; } submission.id = Date.now(); submission.dateSoumission = new Date().toISOString(); let submissions = getSubmissions(); submissions.push(submission); localStorage.setItem('questionnaires', JSON.stringify(submissions)); alert(`Merci ! Votre questionnaire a été enregistré pour l'année scolaire ${submission.school_year}.`); form.reset(); toggleEsiQuestions(); });
+        
+        document.getElementById('export-json-btn').addEventListener('click', function() { const data = localStorage.getItem('questionnaires'); if (!data || data === '[]') { alert('Aucune réponse à exporter.'); return; } const blob = new Blob([JSON.stringify(JSON.parse(data), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `export-questionnaires-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); });
+        
+        const importJsonBtn = document.getElementById('import-json-btn');
+        const importJsonInput = document.getElementById('import-json-input');
+        importJsonBtn.addEventListener('click', () => importJsonInput.click());
+        importJsonInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const importedData = JSON.parse(content);
+
+                    if (!Array.isArray(importedData)) {
+                        throw new Error("Le fichier JSON ne contient pas un tableau de données.");
+                    }
+
+                    const existingData = getSubmissions();
+                    const existingIds = new Set(existingData.map(item => item.id));
+                    
+                    let newItemsCount = 0;
+                    const itemsToAppend = [];
+
+                    importedData.forEach(item => {
+                        if (item.id && !existingIds.has(item.id)) {
+                            itemsToAppend.push(item);
+                            existingIds.add(item.id); // Ajoute au set pour éviter doublons dans le fichier importé lui-même
+                            newItemsCount++;
+                        }
+                    });
+
+                    if (newItemsCount > 0) {
+                        const combinedData = existingData.concat(itemsToAppend);
+                        localStorage.setItem('questionnaires', JSON.stringify(combinedData));
+                        alert(`${newItemsCount} nouveau(x) questionnaire(s) importé(s) avec succès !`);
+                    } else {
+                        alert("Aucun nouveau questionnaire à importer. Les données sont déjà à jour.");
+                    }
+                    // Réinitialise la valeur pour pouvoir importer le même fichier à nouveau si nécessaire
+                    importJsonInput.value = ''; 
+                } catch (error) {
+                    alert(`Erreur lors de l'importation : ${error.message}`);
+                    importJsonInput.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        const consultFilters = { status: document.getElementById('consult-filter-status'), year: document.getElementById('consult-filter-year'), schoolYear: document.getElementById('consult-filter-school-year') };
+        function populateFiltersAndRenderList() { const submissions = getSubmissions(); const schoolYears = [...new Set(submissions.map(s => s.school_year).filter(Boolean))]; consultFilters.schoolYear.innerHTML = '<option value="tous">Toutes</option>'; schoolYears.sort().reverse().forEach(year => consultFilters.schoolYear.innerHTML += `<option value="${year}">${year}</option>`); renderConsultationList(); }
+        
+        function renderConsultationList() { const listContainer = document.getElementById('consultation-list'); listContainer.innerHTML = ''; const allSubmissions = getSubmissions(); const filteredSubmissions = allSubmissions.filter(sub => { const statusMatch = consultFilters.status.value === 'tous' || sub.student_status === consultFilters.status.value; const yearMatch = consultFilters.year.value === 'tous' || sub.student_year === consultFilters.year.value; const schoolYearMatch = consultFilters.schoolYear.value === 'tous' || sub.school_year === consultFilters.schoolYear.value; return statusMatch && yearMatch && schoolYearMatch; }); if (filteredSubmissions.length === 0) { listContainer.innerHTML = '<p>Aucun questionnaire ne correspond à ces filtres.</p>'; return; } filteredSubmissions.sort((a,b) => new Date(b.dateSoumission) - new Date(a.dateSoumission)).forEach(sub => { const item = document.createElement('div'); item.className = 'submission-item'; let statusText = sub.student_status ? sub.student_status.toUpperCase() : 'N/D'; let statusClass = sub.student_status === 'esi' ? 'badge-esi' : (sub.student_status === 'eas' ? 'badge-eas' : 'badge-default'); const yearDisplayText = YEAR_DISPLAY_MAP[sub.student_year] || `Année ${sub.student_year || '?'}`; const headerText = sub.student_status ? `${statusText} - ${yearDisplayText} (${sub.school_year || 'N/D'})` : (sub.type_formation || 'Ancien questionnaire');
+        item.innerHTML = `<div class="checkbox-container"><input type="checkbox" class="submission-checkbox" data-id="${sub.id}"></div><div class="info" data-id="${sub.id}"><div class="header">${headerText}</div><div class="date">Soumis le: ${new Date(sub.dateSoumission).toLocaleDateString('fr-FR')}</div></div><span class="profile-badge ${statusClass}">${statusText}</span><button class="delete-btn no-print" data-id="${sub.id}" title="Supprimer ce questionnaire">X</button>`; listContainer.appendChild(item); }); 
+        listContainer.querySelectorAll('.info').forEach(el => el.addEventListener('click', (e) => renderDetailView(parseInt(e.currentTarget.dataset.id))));
+        listContainer.querySelectorAll('.delete-btn').forEach(el => el.addEventListener('click', (e) => { e.stopPropagation(); deleteSubmission(parseInt(e.currentTarget.dataset.id)); }));
+        }
+
+        Object.values(consultFilters).forEach(filter => filter.addEventListener('change', renderConsultationList));
+        document.getElementById('select-all-checkbox').addEventListener('change', function(e) { document.querySelectorAll('.submission-checkbox').forEach(checkbox => checkbox.checked = e.target.checked); });
+        document.getElementById('analyze-selection-btn').addEventListener('click', function() { const selectedIds = [...document.querySelectorAll('.submission-checkbox:checked')].map(cb => parseInt(cb.dataset.id)); if (selectedIds.length === 0) { alert('Veuillez sélectionner au moins un questionnaire à analyser.'); return; } renderAnalysisDashboard({selectedIds}); });
+        
+        function renderDetailView(submissionId) { currentDetailId = submissionId; const submission = getSubmissions().find(s => s.id === submissionId); if (!submission) return; const yearDisplayText = YEAR_DISPLAY_MAP[submission.student_year] || `Année ${submission.student_year}`; const headerInfo = submission.student_status ? `<p><strong>Statut:</strong> ${submission.student_status.toUpperCase()} | <strong>Année d'étude:</strong> ${yearDisplayText} | <strong>Année scolaire:</strong> ${submission.school_year || 'N/D'}</p>` : `<p><strong>Type de formation:</strong> ${submission.type_formation || 'Non défini'}</p>`; let html = `<div class="detail-header"><h2>Détail du Questionnaire</h2>${headerInfo}<p><strong>Date de soumission:</strong> ${new Date(submission.dateSoumission).toLocaleString('fr-FR')}</p></div><div class="detail-content"><h3>Évaluations</h3>`; for (const key in QUESTION_MAP) { if (Object.prototype.hasOwnProperty.call(submission, key) && submission[key]) { html += `<div class="detail-item"><strong>${QUESTION_MAP[key]}:</strong> ${RATING_MAP[submission[key]] || 'Non renseigné'}</div>`; } } if (submission.commentaires) { html += `<div class="detail-comment"><strong>Commentaires:</strong><p>${submission.commentaires.replace(/\n/g, '<br>')}</p></div>`; } if (submission.suggestions) { html += `<div class="detail-comment"><strong>Suggestions:</strong><p>${submission.suggestions.replace(/\n/g, '<br>')}</p></div>`; } html += `</div>`; document.getElementById('detail-content').innerHTML = html; showView('detail'); }
+        
+        const getSavedAnalyses = () => JSON.parse(localStorage.getItem('savedAnalyses')) || [];
+        function saveAnalysis(analysisData) { const savedAnalyses = getSavedAnalyses(); savedAnalyses.push(analysisData); localStorage.setItem('savedAnalyses', JSON.stringify(savedAnalyses)); }
+        function deleteSavedAnalysis(analysisId) { if (!confirm("Êtes-vous sûr de vouloir supprimer cette analyse sauvegardée ?")) return; let savedAnalyses = getSavedAnalyses(); savedAnalyses = savedAnalyses.filter(a => a.id !== analysisId); localStorage.setItem('savedAnalyses', JSON.stringify(savedAnalyses)); renderSavedAnalysesList(); }
+
+        function renderSavedAnalysesList() {
+            const analyses = getSavedAnalyses();
+            const listContainer = document.getElementById('saved-analyses-list');
+            listContainer.innerHTML = '';
+            const actionsContainer = document.querySelector('#saved-analysis-list-view .consultation-actions');
+            if (analyses.length === 0) { listContainer.innerHTML = '<p>Aucune analyse n\'a été sauvegardée.</p>'; actionsContainer.classList.add('hidden'); return; }
+            actionsContainer.classList.remove('hidden');
+            analyses.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(analysis => {
+                const item = document.createElement('div'); item.className = 'saved-analysis-item';
+                item.innerHTML = `<div class="checkbox-container"><input type="checkbox" class="analysis-checkbox" data-id="${analysis.id}"></div><div class="info-main"><div class="header">${analysis.title}</div><div class="date">Créée le: ${new Date(analysis.createdAt).toLocaleString('fr-FR')}</div></div><div class="actions"><button class="view-btn" data-id="${analysis.id}">Visualiser</button><button class="delete-btn no-print" data-id="${analysis.id}">Supprimer</button></div>`;
+                listContainer.appendChild(item);
+            });
+            listContainer.querySelectorAll('.view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const analysisId = parseFloat(e.currentTarget.dataset.id); currentAnalysis = getSavedAnalyses().find(a => a.id === analysisId); if (currentAnalysis) { renderAnalysisDashboard({ savedAnalysisData: currentAnalysis }); } }); });
+            listContainer.querySelectorAll('.delete-btn').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); const analysisId = parseFloat(e.currentTarget.dataset.id); deleteSavedAnalysis(analysisId); }); });
+        }
+        
+        function renderAnalysisDashboard({selectedIds = [], savedAnalysisData = null}) {
+            if(savedAnalysisData) { currentAnalysis = savedAnalysisData; }
+            else { currentAnalysis = null; }
+            
+            const titleContainer = document.getElementById('analysis-title-container');
+            const ratingsDiv = document.getElementById('ratings-analysis');
+            const synthesisContainer = document.getElementById('ai-synthesis-container');
+            const backBtn = document.getElementById('back-to-list-from-analysis-btn');
+            const legend = document.getElementById('ratings-legend');
+
+            if (savedAnalysisData) {
+                legend.classList.remove('hidden');
+                document.getElementById('total-submissions').textContent = savedAnalysisData.stats.totalSubmissions;
+                document.getElementById('average-score').textContent = savedAnalysisData.stats.averageScore;
+                ratingsDiv.innerHTML = savedAnalysisData.ratingsHtml;
+                synthesisContainer.innerHTML = savedAnalysisData.synthesisHtml;
+                titleContainer.textContent = `Visualisation de l'analyse : "${savedAnalysisData.title}"`;
+                titleContainer.classList.remove('hidden');
+                backBtn.textContent = "Retour aux analyses";
+                showView('analysis');
+                return;
+            }
+            
+            legend.classList.remove('hidden');
+            backBtn.textContent = "Retour à la sélection";
+            titleContainer.classList.add('hidden');
+            const data = getSubmissions().filter(sub => selectedIds.includes(sub.id)); 
+            document.getElementById('total-submissions').textContent = data.length; 
+            if (data.length === 0) return;
+            
+            const statusText = consultFilters.status.options[consultFilters.status.selectedIndex].text;
+            const schoolYearText = consultFilters.schoolYear.options[consultFilters.schoolYear.selectedIndex].text;
+            const generatedTitle = `Analyse ${statusText} - Année ${schoolYearText} (${data.length} questionnaires)`;
+
+            let totalScore = 0, scoreCount = 0;
+            data.forEach(sub => { Object.keys(QUESTION_MAP).forEach(key => { if (sub[key] && !isNaN(parseInt(sub[key]))) { totalScore += parseInt(sub[key], 10); scoreCount++; } }); });
+            const averageScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : 'N/A';
+            document.getElementById('average-score').textContent = averageScore;
+            
+            ratingsDiv.innerHTML = '';
+            
+            const ratingsData = [];
+            Object.keys(QUESTION_MAP).forEach(key => {
+                const questionData = data.map(sub => sub[key]).filter(val => val && val !== '');
+                if (questionData.length > 0) {
+                    const avg = (questionData.reduce((a, b) => a + parseInt(b, 10), 0) / questionData.length);
+                    ratingsData.push({ key: key, label: QUESTION_MAP[key], avg: parseFloat(avg.toFixed(2)) });
+                    
+                    let itemHtml = `<div class="analysis-item"><div class="analysis-item-header"><div class="label">${QUESTION_MAP[key]}</div><div class="average-score-text">${avg.toFixed(1)}/4</div></div>`;
+                    const counts = {'1': 0, '2': 0, '3': 0, '4': 0};
+                    questionData.forEach(val => { counts[val] = (counts[val] || 0) + 1; });
+                    let distBarHtml = '<div class="distribution-bar">';
+                    ['1', '2', '3', '4'].forEach((rating, index) => {
+                        if (counts[rating] > 0) {
+                            const percentage = (counts[rating] / questionData.length) * 100;
+                            distBarHtml += `<div class="dist-segment ${['dist-ns-bg', 'dist-ms-bg', 'dist-s-bg', 'dist-ts-bg'][index]}" style="width: ${percentage}%;" title="${RATING_MAP[rating]}: ${counts[rating]}">${percentage > 15 ? counts[rating] : ''}</div>`;
+                        }
+                    });
+                    distBarHtml += '</div>';
+                    itemHtml += distBarHtml + '</div>';
+                    ratingsDiv.innerHTML += itemHtml;
+                }
+            });
+
+            let allText = ''; 
+            data.forEach(sub => { 
+                if (sub.commentaires) allText += `Commentaire de ${sub.student_status.toUpperCase()} ${YEAR_DISPLAY_MAP[sub.student_year]}: ${sub.commentaires}\n\n`;
+                if (sub.suggestions) allText += `Suggestion de ${sub.student_status.toUpperCase()} ${YEAR_DISPLAY_MAP[sub.student_year]}: ${sub.suggestions}\n\n`; 
+            }); 
+
+            showView('analysis');
+            
+            const analysisToSave = { id: Date.now(), createdAt: new Date().toISOString(), title: generatedTitle, includedIds: selectedIds, stats: { totalSubmissions: data.length, averageScore: averageScore }, ratingsHtml: ratingsDiv.innerHTML, ratingsData: ratingsData, synthesisHtml: "" };
+            currentAnalysis = analysisToSave;
+            
+            if (allText.trim() === '') { synthesisContainer.innerHTML = "<p>Aucun commentaire ou suggestion à analyser.</p>"; analysisToSave.synthesisHtml = synthesisContainer.innerHTML; saveAnalysis(analysisToSave); return; } 
+
+            synthesisContainer.innerHTML = '<p class="loading-text">Synthèse IA en cours...</p>';
+            fetch('/.netlify/functions/synthesize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: allText }) })
+                .then(response => { if (!response.ok) { throw new Error(`Erreur du serveur: ${response.statusText}`); } return response.json(); })
+                .then(result => { 
+                    let formattedSynthesis = result.synthesis.replace(/### (.*?)\n/g, '<h3>$1</h3>').replace(/\* (.*?)\n/g, '<li>$1</li>').replace(/<\/li>(\s*<h3>)/g, '</li></ul>$1').replace(/(<h3>[\s\S]*?<\/li>(?![\s\S]*<\/li>))/g, '$1</ul>'); 
+                    if (formattedSynthesis.includes('<li>')) formattedSynthesis = '<ul>' + formattedSynthesis; 
+                    if (formattedSynthesis.endsWith('</ul>') == false && formattedSynthesis.includes('<li>')) { formattedSynthesis += '</ul>'}
+                    synthesisContainer.innerHTML = formattedSynthesis; 
+                    analysisToSave.synthesisHtml = synthesisContainer.innerHTML; saveAnalysis(analysisToSave);
+                })
+                .catch(error => { 
+                    console.error('Erreur lors de la synthèse IA:', error); 
+                    const errorMessageHtml = `<p style="color: red;"><strong>Erreur :</strong> Impossible de générer la synthèse IA. Le service est peut-être indisponible. L'analyse quantitative a tout de même été sauvegardée.</p>`;
+                    synthesisContainer.innerHTML = errorMessageHtml;
+                    analysisToSave.synthesisHtml = errorMessageHtml;
+                    saveAnalysis(analysisToSave);
+                }); 
+        }
+        
+        function runDeepAnalysis() { /* ... */ }
+        
+        function runAnalysesComparison() {
+            const selectedIds = [...document.querySelectorAll('.analysis-checkbox:checked')].map(cb => parseFloat(cb.dataset.id));
+            if (selectedIds.length < 2) { alert("Veuillez sélectionner au moins deux analyses à comparer."); return; }
+
+            const allAnalyses = getSavedAnalyses();
+            const selectedAnalyses = allAnalyses.filter(a => selectedIds.includes(a.id)).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+            
+            const infoContainer = document.getElementById('compared-analyses-info');
+            infoContainer.innerHTML = '<h3>Analyses comparées :</h3><ul>' + selectedAnalyses.map(a => `<li>${a.title}</li>`).join('') + '</ul>';
+
+            if (overallScoreChart) overallScoreChart.destroy();
+            itemChartInstances.forEach(chart => chart.destroy());
+            itemChartInstances = [];
+
+            const labels = selectedAnalyses.map(a => a.title.replace("Analyse ", "").replace(/ \(\d+ questionnaires\)/, ""));
+            const overallData = selectedAnalyses.map(a => a.stats.averageScore);
+            overallScoreChart = new Chart(document.getElementById('overall-score-chart'), { type: 'line', data: { labels: labels, datasets: [{ label: 'Note Moyenne Globale', data: overallData, borderColor: 'rgba(0, 123, 255, 1)', backgroundColor: 'rgba(0, 123, 255, 0.1)', fill: true, tension: 0.1 }] }, options: { scales: { y: { beginAtZero: true, max: 4 } } } });
+
+            const chartsGrid = document.getElementById('item-evolution-charts-grid');
+            chartsGrid.innerHTML = '';
+            
+            Object.keys(QUESTION_MAP).forEach(questionKey => {
+                const chartDataPoints = selectedAnalyses.map(analysis => {
+                    const ratingItem = (analysis.ratingsData || []).find(item => item.key === questionKey);
+                    return ratingItem ? ratingItem.avg : null;
+                });
+
+                if (chartDataPoints.some(p => p !== null)) {
+                    const chartWrapper = document.createElement('div');
+                    const canvas = document.createElement('canvas');
+                    chartsGrid.appendChild(chartWrapper).appendChild(canvas);
+
+                    const newChart = new Chart(canvas, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Note moyenne',
+                                data: chartDataPoints,
+                                borderColor: '#28a745',
+                                tension: 0.1,
+                                spanGaps: true
+                            }]
+                        },
+                        options: { plugins: { title: { display: true, text: QUESTION_MAP[questionKey] }, legend: { display: false } }, scales: { y: { beginAtZero: true, max: 4 } } }
+                    });
+                    itemChartInstances.push(newChart);
+                }
+            });
+            const htmlToText = (html) => { const tempDiv = document.createElement('div'); tempDiv.innerHTML = html; return tempDiv.textContent || tempDiv.innerText || ''; };
+            let comparisonText = "Tâche: Tu es un assistant d'analyse pour un référent de stage en santé. On te fournit plusieurs synthèses de retours de stagiaires (ESI et EAS) sur différentes périodes. Ta mission est de comparer ces synthèses.\n\nObjectif: Identifie clairement les points d'amélioration, les points de dégradation, et les points récurrents.\n\nFormat de réponse: Structure ta réponse avec les titres '### Améliorations', '### Dégradations', et '### Points Récurrents'. Utilise des listes à puces.\n\n";
+            selectedAnalyses.forEach((analysis, index) => { comparisonText += `--- DÉBUT SYNTHÈSE ${index + 1}: ${analysis.title} ---\n${htmlToText(analysis.synthesisHtml)}\n--- FIN SYNTHÈSE ${index + 1} ---\n\n`; });
+            
+            showView('comparison');
+            const synthesisContainer = document.getElementById('ai-comparison-synthesis-container');
+            synthesisContainer.innerHTML = '<p class="loading-text">Comparaison par l\'IA en cours... Veuillez patienter.</p>';
+
+            fetch('/.netlify/functions/synthesize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: comparisonText }) })
+                .then(response => { if (!response.ok) { throw new Error(`Erreur du serveur: ${response.statusText}`); } return response.json(); })
+                .then(result => { 
+                    let formattedSynthesis = result.synthesis.replace(/### (.*?)\n/g, '<h3>$1</h3>').replace(/\* (.*?)\n/g, '<li>$1</li>').replace(/<\/li>(\s*<h3>)/g, '</li></ul>$1').replace(/(<h3>[\s\S]*?<\/li>(?![\s\S]*<\/li>))/g, '$1</ul>'); 
+                    if (formattedSynthesis.includes('<li>')) formattedSynthesis = '<ul>' + formattedSynthesis; 
+                    if (formattedSynthesis.endsWith('</ul>') == false && formattedSynthesis.includes('<li>')) { formattedSynthesis += '</ul>'}
+                    synthesisContainer.innerHTML = formattedSynthesis; 
+                })
+                .catch(error => { console.error('Erreur lors de la comparaison IA:', error); synthesisContainer.innerHTML = `<p style="color: red;"><strong>Erreur :</strong> Impossible de générer la comparaison. Le service est peut-être indisponible.</p>`; });
+        }
+        
+        function handlePrint(viewId) { const viewToPrint = document.getElementById(viewId); document.body.classList.add('printing'); viewToPrint.classList.add('printable-view'); window.print(); viewToPrint.classList.remove('printable-view'); document.body.classList.remove('printing'); }
+        
+        document.getElementById('back-to-form-from-hub-btn').addEventListener('click', () => showView('form'));
+        document.getElementById('back-to-hub-from-consult-btn').addEventListener('click', () => showView('adminHub'));
+        document.getElementById('back-to-list-from-analysis-btn').addEventListener('click', () => { renderSavedAnalysesList(); showView('savedAnalysisList'); });
+        document.getElementById('back-to-list-btn').addEventListener('click', () => showView('consultation'));
+        document.getElementById('delete-from-detail-btn').addEventListener('click', () => deleteSubmission(currentDetailId));
+        document.getElementById('print-detail-btn').addEventListener('click', () => handlePrint('detail-view'));
+        document.getElementById('print-analysis-btn').addEventListener('click', () => handlePrint('analysis-view'));
+        document.getElementById('go-to-saved-analyses-btn').addEventListener('click', () => { renderSavedAnalysesList(); showView('savedAnalysisList'); });
+        document.getElementById('back-to-hub-from-saved-list-btn').addEventListener('click', () => showView('adminHub'));
+        document.getElementById('select-all-analyses-checkbox').addEventListener('change', (e) => { document.querySelectorAll('.analysis-checkbox').forEach(checkbox => checkbox.checked = e.target.checked); });
+        document.getElementById('compare-analyses-btn').addEventListener('click', runAnalysesComparison);
+        document.getElementById('back-to-saved-list-from-comparison-btn').addEventListener('click', () => { renderSavedAnalysesList(); showView('savedAnalysisList'); });
+        document.getElementById('print-comparison-btn').addEventListener('click', () => handlePrint('comparison-view'));
+        document.getElementById('deep-analyze-btn').addEventListener('click', runDeepAnalysis);
+        document.getElementById('print-deep-analysis-btn').addEventListener('click', () => handlePrint('deep-analysis-view'));
+        document.getElementById('back-to-saved-list-from-deep-analysis-btn').addEventListener('click', () => { renderSavedAnalysesList(); showView('savedAnalysisList'); });
+        
+        showView('form');
+        toggleEsiQuestions();
+    });
+    </script>
+</body>
+</html>
